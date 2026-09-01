@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboDog Telemetry Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Header Control Bar -->
+    <header>
+        <div class="brand">
+            <h1>ROBODOG <span>TELEMETRY</span></h1>
+            <div id="statusBadge" class="badge disconnected">DISCONNECTED</div>
+        </div>
+        <div class="controls">
+            <button id="connectBtn">CONNECT BLE</button>
+            <button id="disconnectBtn" disabled>DISCONNECT</button>
+        </div>
+    </header>
+
+    <main id="dashboard">
+        <!-- TOP ROW: Pressure & Optical KPIs -->
+        <section class="grid-row top-row">
+            <div class="card kpi">
+                <h3>Temperature</h3>
+                <div class="value" id="val-temp">-- °C</div>
+                <div class="progress-bar"><div id="bar-temp" class="fill"></div></div>
+            </div>
+            
+            <div class="card kpi">
+                <h3>Humidity</h3>
+                <div class="value" id="val-hum">-- %</div>
+                <div class="progress-bar"><div id="bar-hum" class="fill"></div></div>
+            </div>
+
+            <div class="card kpi" id="gas-card">
+                <h3>Air Quality (Gas)</h3>
+                <div class="value" id="val-gas">-- </div>
+                <div class="progress-bar"><div id="bar-gas" class="fill"></div></div>
+                <div class="value small" id="val-gas-msg" style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">Normal</div>
+            </div>
+
+            <div class="card kpi" id="flame-card">
+                <h3>Flame Sensor</h3>
+                <div class="value" id="val-flame">SAFE</div>
+                <div class="value small" id="val-flame-raw" style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">Intensity: 0</div>
+            </div>
+            <div class="card kpi">
+                <h3>Barometric Pressure</h3>
+                <div class="value" id="val-pres">-- kPa</div>
+            </div>
+
+            <div class="card kpi rgb-card">
+                <h3>Optic Sensor (RGB)</h3>
+                <div id="val-color-box" class="color-box"></div>
+                <div class="rgb-labels" id="val-rgb-text">R:0 G:0 B:0</div>
+            </div>
+        </section>
+
+        <!-- MIDDLE ROW: High Frequency Motion Data -->
+        <section class="grid-row middle-row">
+            <div class="card chart-container">
+                <h3>Accelerometer (X, Y, Z)</h3>
+                <canvas id="accelChart"></canvas>
+            </div>
+            <div class="card chart-container">
+                <h3>Gyroscope (X, Y, Z)</h3>
+                <canvas id="gyroChart"></canvas>
+            </div>
+        </section>
+
+        <!-- BOTTOM ROW: Orientation and Audio -->
+        <section class="grid-row bottom-row">
+            <div class="card compass-card">
+                <h3>Magnetometer Compass</h3>
+                <div class="compass-wrapper">
+                    <div id="compass-dial" class="dial">
+                        <div class="needle"></div>
+                    </div>
+                </div>
+                <div class="value small" id="val-mag">Heading: --°</div>
+            </div>
+
+            <div class="card audio-card">
+                <h3>Ambient Noise Level</h3>
+                <div class="vu-wrapper">
+                    <div id="vu-meter" class="vu-fill"></div>
+                </div>
+                <div class="value small" id="val-noise">Amplitude: 0</div>
+            </div>
+        </section>
+
+        <!-- DEBUG LOG FOOTER -->
+        <section class="card debug-card">
+            <h3>System & Connection Console</h3>
+            <div id="debugLog" class="debug-console">Ready to connect... Click "CONNECT BLE" above.</div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

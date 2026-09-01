@@ -1,0 +1,192 @@
+:root {
+    --bg-dark: #0f1115;
+    --card-bg: #1a1d24;
+    --text-main: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #0ea5e9;
+    --success: #10b981;
+    --danger: #ef4444;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Roboto', sans-serif;
+}
+
+h1, h2, h3, .value, .badge {
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+}
+
+/* --- HEADER --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #13161c;
+    border-bottom: 2px solid #272c36;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    color: white;
+}
+
+header h1 span {
+    color: var(--accent);
+}
+
+.brand { 
+    display: flex; 
+    align-items: center; 
+    gap: 20px; 
+}
+
+.badge {
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+.badge.disconnected { background: var(--danger); }
+.badge.connected { background: var(--success); }
+
+button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+button:hover { background: #0284c7; }
+button:disabled { background: #334155; cursor: not-allowed; }
+
+#disconnectBtn { 
+    background: transparent; 
+    border: 1px solid var(--danger); 
+    color: var(--danger); 
+}
+#disconnectBtn:hover:not(:disabled) { 
+    background: var(--danger); 
+    color: white; 
+}
+
+/* --- DASHBOARD GRID --- */
+#dashboard {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.grid-row {
+    display: grid;
+    gap: 20px;
+}
+.top-row { grid-template-columns: repeat(4, 1fr); }
+.middle-row { grid-template-columns: 1fr 1fr; }
+.bottom-row { grid-template-columns: 1fr 1fr; }
+
+@media (max-width: 900px) {
+    .top-row, .middle-row, .bottom-row { grid-template-columns: 1fr; }
+}
+
+.card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    border: 1px solid #272c36;
+}
+
+.card h3 {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+}
+
+/* --- KPIs & GAUGES --- */
+.value { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; }
+.value.small { font-size: 1.2rem; text-align: center; margin-top: 15px; }
+
+.color-box {
+    width: 100%;
+    height: 40px;
+    background: #000;
+    border-radius: 4px;
+    border: 1px solid #334155;
+    transition: background-color 0.2s;
+}
+.rgb-labels { margin-top: 10px; font-family: monospace; font-size: 1rem; color: #94a3b8; }
+
+/* --- CHARTS --- */
+.chart-container { position: relative; height: 300px; }
+
+/* --- COMPASS --- */
+.compass-wrapper {
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 150px;
+}
+.dial {
+    width: 120px; 
+    height: 120px;
+    border: 4px solid #334155;
+    border-radius: 50%;
+    position: relative;
+    transition: transform 0.1s linear;
+}
+.needle {
+    width: 4px; 
+    height: 50%;
+    background: var(--danger);
+    position: absolute;
+    left: 50%; 
+    bottom: 50%;
+    transform: translateX(-50%);
+    border-radius: 4px 4px 0 0;
+}
+
+/* --- VU METER --- */
+.vu-wrapper {
+    width: 100%; 
+    height: 150px;
+    background: #334155;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex; 
+    align-items: flex-end;
+}
+.vu-fill {
+    width: 100%; 
+    height: 0%;
+    background: linear-gradient(0deg, #10b981 0%, #eab308 60%, #ef4444 100%);
+    transition: height 0.05s ease-out;
+}
+
+/* --- DEBUG CONSOLE --- */
+.debug-console {
+    background: #000;
+    color: #00ff00;
+    font-family: monospace;
+    font-size: 0.85rem;
+    padding: 10px;
+    border-radius: 4px;
+    height: 80px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    border: 1px solid #334155;
+}

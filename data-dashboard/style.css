@@ -177,6 +177,131 @@ button:disabled { background: #334155; cursor: not-allowed; }
     transition: height 0.05s ease-out;
 }
 
+/* --- ROBODOG CONTROL --- */
+.robodog-control-card {
+    border-color: #27536d;
+}
+
+.robodog-control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.robodog-control-header h2 {
+    font-size: 1.15rem;
+    color: var(--text-main);
+    letter-spacing: 1px;
+}
+
+.robodog-control-header p,
+.control-note {
+    margin: 8px 0 0;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.robot-control-status {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.8px;
+}
+
+.robot-control-status.ready { color: #6ee7b7; border-color: var(--success); }
+.robot-control-status.sending { color: #7dd3fc; border-color: var(--accent); }
+.robot-control-status.error { color: #fca5a5; border-color: var(--danger); }
+.robot-control-status.offline { color: var(--text-dim); }
+
+.robot-control-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+}
+
+.robot-control-group + .robot-control-group {
+    border-left: 1px solid #334155;
+    padding-left: 28px;
+}
+
+.motion-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.motion-btn {
+    min-height: 44px;
+    padding: 10px 8px;
+}
+
+.motion-btn[data-robot-command="4"] { background: #7c3aed; }
+.motion-btn[data-robot-command="4"]:hover:not(:disabled) { background: #6d28d9; }
+.motion-btn[data-robot-command="2"] { background: #475569; }
+.motion-btn[data-robot-command="2"]:hover:not(:disabled) { background: #334155; }
+
+.joint-input-row {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 13px;
+}
+
+.joint-input-row label {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.joint-input-row select,
+.joint-input-row input {
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background: #0f1115;
+    color: var(--text-main);
+    font: inherit;
+}
+
+.joint-input-row select { padding: 10px; }
+.joint-input-row input[type="range"] { accent-color: var(--accent); }
+
+.angle-row {
+    grid-template-columns: 52px minmax(0, 1fr) 66px 40px;
+}
+
+.angle-row input[type="number"] { padding: 8px; text-align: center; }
+.angle-row output { color: #7dd3fc; font-family: 'Orbitron', sans-serif; font-size: 0.85rem; }
+
+.joint-send-btn {
+    width: 100%;
+    background: #0369a1;
+}
+
+.joint-send-btn:hover:not(:disabled) { background: #075985; }
+
+@media (max-width: 900px) {
+    .robot-control-grid { grid-template-columns: 1fr; }
+    .robot-control-group + .robot-control-group {
+        border-left: none;
+        border-top: 1px solid #334155;
+        padding: 22px 0 0;
+    }
+}
+
+@media (max-width: 560px) {
+    .robodog-control-header { flex-direction: column; }
+    .motion-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* --- DEBUG CONSOLE --- */
 .debug-console {
     background: #000;

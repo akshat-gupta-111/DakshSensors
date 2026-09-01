@@ -1,9 +1,11 @@
 // --- BLE Service & Characteristic UUIDs (Nordic UART Service) ---
 const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const TX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+const RX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 
 let bluetoothDevice = null;
-let bleBuffer = ""; // Accumulator for fragmented BLE packets
+let robotControlCharacteristic = null;
+let bleBuffer = ""; // Accumulator for fragmented BLE lines
 
 // --- Chart Data Globals (Rolling Window of 30) ---
 const MAX_POINTS = 30;
@@ -23,6 +25,48 @@ function logDebug(message) {
         consoleElem.scrollTop = consoleElem.scrollHeight;
     }
     console.log(message);
+}
+
+function setRobotControlStatus(message, state = 'offline') {
+    const status = document.getElementById('robotControlStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.className = `robot-control-status ${state}`;
+}
+
+function setRobotControlsEnabled(enabled) {
+    document.querySelectorAll('[data-robot-command], #jointSelect, #jointAngle, #jointAngleNumber, #sendJointBtn')
+        .forEach(control => { control.disabled = !enabled; });
+    setRobotControlStatus(enabled ? 'READY FOR COMMANDS' : 'CONNECT TO ENABLE', enabled ? 'ready' : 'offline');
+}
+
+async function sendRobotCommand(command, actionLabel) {
+    if (!robotControlCharacteristic || !bluetoothDevice?.gatt?.connected) {
+        const message = 'Robot command not sent: BLE is disconnected.';
+        logDebug(message);
+        setRobotControlStatus('NOT CONNECTED', 'error');
+        return;
+    }
+
+    try {
+        setRobotControlStatus(`SENDING ${actionLabel.toUpperCase()}`, 'sending');
+        const commandBytes = new TextEncoder().encode(command);
+
+        // Uno R4 exposes the NUS RX characteristic with both write modes.
+        if (typeof robotControlCharacteristic.writeValueWithoutResponse === 'function') {
+            await robotControlCharacteristic.writeValueWithoutResponse(commandBytes);
+        } else if (typeof robotControlCharacteristic.writeValueWithResponse === 'function') {
+            await robotControlCharacteristic.writeValueWithResponse(commandBytes);
+        } else {
+            await robotControlCharacteristic.writeValue(commandBytes);
+        }
+
+        logDebug(`Robodog command sent: ${actionLabel} (${command})`);
+        setRobotControlStatus(`SENT: ${actionLabel.toUpperCase()}`, 'ready');
+    } catch (error) {
+        logDebug(`Robot command error: ${error.message || error}`);
+        setRobotControlStatus('COMMAND FAILED', 'error');
+    }
 }
 
 // --- Initialize Charts Safely ---
@@ -75,6 +119,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
     const statusBadge = document.getElementById('statusBadge');
+    const jointAngle = document.getElementById('jointAngle');
+    const jointAngleNumber = document.getElementById('jointAngleNumber');
+    const jointAngleValue = document.getElementById('jointAngleValue');
+    const jointSelect = document.getElementById('jointSelect');
+    const sendJointBtn = document.getElementById('sendJointBtn');
+
+    const syncJointAngle = value => {
+        const angle = Math.min(180, Math.max(0, Number.parseInt(value, 10) || 0));
+        jointAngle.value = angle;
+        jointAngleNumber.value = angle;
+        jointAngleValue.textContent = `${angle} deg`;
+    };
+
+    jointAngle.addEventListener('input', event => syncJointAngle(event.target.value));
+    jointAngleNumber.addEventListener('input', event => syncJointAngle(event.target.value));
+
+    document.querySelectorAll('[data-robot-command]').forEach(button => {
+        button.addEventListener('click', () => {
+            sendRobotCommand(button.dataset.robotCommand, button.dataset.robotAction);
+        });
+    });
+
+    sendJointBtn.addEventListener('click', () => {
+        const angle = Math.min(180, Math.max(0, Number.parseInt(jointAngle.value, 10) || 0));
+        const joint = jointSelect.value;
+        sendRobotCommand(`${joint} ${angle}`, `${joint} to ${angle} degrees`);
+    });
+
+    setRobotControlsEnabled(false);
 
     if (!navigator.bluetooth) {
         logDebug("ERROR: Web Bluetooth API is not supported in this browser. Use Chrome, Edge, or Opera.");
@@ -110,6 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusBadge.className = "badge disconnected";
                 connectBtn.disabled = false;
                 disconnectBtn.disabled = true;
+                robotControlCharacteristic = null;
+                setRobotControlsEnabled(false);
             });
 
             logDebug("Connecting to GATT Server...");
@@ -119,19 +194,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const service = await server.getPrimaryService(SERVICE_UUID);
 
             logDebug("Retrieving TX Characteristic...");
-            const characteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+            const telemetryCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+
+            logDebug("Retrieving RX Command Characteristic...");
+            robotControlCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
 
             logDebug("Subscribing to notifications...");
-            await characteristic.startNotifications();
-            characteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
+            await telemetryCharacteristic.startNotifications();
+            telemetryCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
 
             logDebug(">> CONNECTED AND RECEIVING TELEMETRY <<");
             statusBadge.textContent = "CONNECTED";
             statusBadge.className = "badge connected";
             connectBtn.disabled = true;
             disconnectBtn.disabled = false;
+            setRobotControlsEnabled(true);
 
         } catch (error) {
+            robotControlCharacteristic = null;
+            setRobotControlsEnabled(false);
             logDebug(`BLE Error: ${error.message || error}`);
             console.error("BLE Connection Error: ", error);
         }
@@ -149,20 +230,22 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleIncomingData(event) {
     const decoder = new TextDecoder('utf-8');
     const newChunk = decoder.decode(event.target.value);
-    
     bleBuffer += newChunk;
 
-    const packetRegex = /<([^>]+)>/g;
-    let match;
+    // The hub sends both newline-terminated status logs and <...> telemetry on TX.
+    // Keep partial BLE notifications until their full line arrives so log text cannot
+    // interfere with packet parsing.
+    let newlineIndex;
+    while ((newlineIndex = bleBuffer.indexOf('\n')) !== -1) {
+        const line = bleBuffer.substring(0, newlineIndex).trim();
+        bleBuffer = bleBuffer.substring(newlineIndex + 1);
 
-    while ((match = packetRegex.exec(bleBuffer)) !== null) {
-        const payload = match[1];
-        parseAndDisplayPacket(payload);
-    }
-
-    const lastIndex = bleBuffer.lastIndexOf('>');
-    if (lastIndex !== -1) {
-        bleBuffer = bleBuffer.substring(lastIndex + 1);
+        if (!line) continue;
+        if (line.startsWith('<') && line.endsWith('>')) {
+            parseAndDisplayPacket(line.slice(1, -1));
+        } else {
+            logDebug(`Hub: ${line}`);
+        }
     }
 }
 

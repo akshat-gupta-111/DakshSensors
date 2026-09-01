@@ -94,6 +94,59 @@
             </div>
         </section>
 
+        <!-- ROBODOG CONTROL: uses the BLE UART RX characteristic -->
+        <section class="card robodog-control-card" aria-labelledby="robodog-control-title">
+            <div class="robodog-control-header">
+                <div>
+                    <h2 id="robodog-control-title">Robodog Control</h2>
+                    <p>Choose a movement sequence or set one servo joint. Commands are sent over the connected BLE link.</p>
+                </div>
+                <div id="robotControlStatus" class="robot-control-status offline" role="status">CONNECT TO ENABLE</div>
+            </div>
+
+            <div class="robot-control-grid">
+                <div class="robot-control-group">
+                    <h3>Movement Sequences</h3>
+                    <div class="motion-buttons">
+                        <button type="button" class="motion-btn" data-robot-command="1" data-robot-action="Stand" disabled>STAND</button>
+                        <button type="button" class="motion-btn" data-robot-command="2" data-robot-action="Rest" disabled>REST</button>
+                        <button type="button" class="motion-btn" data-robot-command="3" data-robot-action="Hello / High-five" disabled>HELLO</button>
+                        <button type="button" class="motion-btn" data-robot-command="4" data-robot-action="Walk (4 cycles)" disabled>WALK</button>
+                        <button type="button" class="motion-btn" data-robot-command="5" data-robot-action="Sit" disabled>SIT</button>
+                    </div>
+                    <p class="control-note">Send one movement at a time and wait for its completion before issuing the next command.</p>
+                </div>
+
+                <div class="robot-control-group joint-control-group">
+                    <h3>Manual Joint Adjustment</h3>
+                    <div class="joint-input-row">
+                        <label for="jointSelect">Joint</label>
+                        <select id="jointSelect" disabled>
+                            <option value="FLS">Front Left Shoulder (FLS)</option>
+                            <option value="FLH">Front Left Hip (FLH)</option>
+                            <option value="FLK">Front Left Knee (FLK)</option>
+                            <option value="FRS">Front Right Shoulder (FRS)</option>
+                            <option value="FRH">Front Right Hip (FRH)</option>
+                            <option value="FRK">Front Right Knee (FRK)</option>
+                            <option value="RLS">Rear Left Shoulder (RLS)</option>
+                            <option value="RLH">Rear Left Hip (RLH)</option>
+                            <option value="RLK">Rear Left Knee (RLK)</option>
+                            <option value="RRS">Rear Right Shoulder (RRS)</option>
+                            <option value="RRH">Rear Right Hip (RRH)</option>
+                            <option value="RRK">Rear Right Knee (RRK)</option>
+                        </select>
+                    </div>
+                    <div class="joint-input-row angle-row">
+                        <label for="jointAngle">Angle</label>
+                        <input id="jointAngle" type="range" min="0" max="180" value="90" step="1" disabled>
+                        <input id="jointAngleNumber" type="number" min="0" max="180" value="90" step="1" aria-label="Joint angle in degrees" disabled>
+                        <output id="jointAngleValue" for="jointAngle">90&deg;</output>
+                    </div>
+                    <button type="button" id="sendJointBtn" class="joint-send-btn" disabled>SET JOINT ANGLE</button>
+                </div>
+            </div>
+        </section>
+
         <!-- DEBUG LOG FOOTER -->
         <section class="card debug-card">
             <h3>System & Connection Console</h3>

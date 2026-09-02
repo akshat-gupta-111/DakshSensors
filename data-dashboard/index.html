@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoboDog Telemetry Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RoboDog Control Center</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,7 +13,7 @@
     <!-- Header Control Bar -->
     <header>
         <div class="brand">
-            <h1>ROBODOG <span>TELEMETRY</span></h1>
+            <h1>ROBODOG</h1>
             <div id="statusBadge" class="badge disconnected">DISCONNECTED</div>
         </div>
         <div class="controls">
@@ -23,136 +23,156 @@
     </header>
 
     <main id="dashboard">
-        <!-- TOP ROW: Pressure & Optical KPIs -->
-        <section class="grid-row top-row">
-            <div class="card kpi">
-                <h3>Temperature</h3>
-                <div class="value" id="val-temp">-- °C</div>
-                <div class="progress-bar"><div id="bar-temp" class="fill"></div></div>
-            </div>
-            
-            <div class="card kpi">
-                <h3>Humidity</h3>
-                <div class="value" id="val-hum">-- %</div>
-                <div class="progress-bar"><div id="bar-hum" class="fill"></div></div>
-            </div>
+        
+        <!-- ========================================== -->
+        <!-- PAGE 1: TELEMETRY DASHBOARD                -->
+        <!-- ========================================== -->
+        <div id="telemetry-page" class="page-view active">
+            <!-- TOP ROW: Pressure & Optical KPIs -->
+            <section class="grid-row top-row">
+                <div class="card kpi">
+                    <h3>Temperature</h3>
+                    <div class="value" id="val-temp">-- °C</div>
+                    <div class="progress-bar"><div id="bar-temp" class="fill"></div></div>
+                </div>
+                
+                <div class="card kpi">
+                    <h3>Humidity</h3>
+                    <div class="value" id="val-hum">-- %</div>
+                    <div class="progress-bar"><div id="bar-hum" class="fill"></div></div>
+                </div>
 
-            <div class="card kpi" id="gas-card">
-                <h3>Air Quality (Gas)</h3>
-                <div class="value" id="val-gas">-- </div>
-                <div class="progress-bar"><div id="bar-gas" class="fill"></div></div>
-                <div class="value small" id="val-gas-msg" style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">Normal</div>
-            </div>
+                <div class="card kpi" id="gas-card">
+                    <h3>Air Quality (Gas)</h3>
+                    <div class="value" id="val-gas">-- </div>
+                    <div class="progress-bar"><div id="bar-gas" class="fill"></div></div>
+                    <div class="value small" id="val-gas-msg">Normal</div>
+                </div>
 
-            <div class="card kpi" id="flame-card">
-                <h3>Flame Sensor</h3>
-                <div class="value" id="val-flame">SAFE</div>
-                <div class="value small" id="val-flame-raw" style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">Intensity: 0</div>
-            </div>
-            <div class="card kpi">
-                <h3>Barometric Pressure</h3>
-                <div class="value" id="val-pres">-- kPa</div>
-            </div>
+                <div class="card kpi" id="flame-card">
+                    <h3>Flame Sensor</h3>
+                    <div class="value" id="val-flame">SAFE</div>
+                    <div class="value small" id="val-flame-raw">Intensity: 0</div>
+                </div>
+                <div class="card kpi">
+                    <h3>Barometric Pressure</h3>
+                    <div class="value" id="val-pres">-- kPa</div>
+                </div>
 
-            <div class="card kpi rgb-card">
-                <h3>Optic Sensor (RGB)</h3>
-                <div id="val-color-box" class="color-box"></div>
-                <div class="rgb-labels" id="val-rgb-text">R:0 G:0 B:0</div>
-            </div>
-        </section>
+                <div class="card kpi rgb-card">
+                    <h3>Optic Sensor (RGB)</h3>
+                    <div id="val-color-box" class="color-box"></div>
+                    <div class="rgb-labels" id="val-rgb-text">R:0 G:0 B:0</div>
+                </div>
+            </section>
 
-        <!-- MIDDLE ROW: High Frequency Motion Data -->
-        <section class="grid-row middle-row">
-            <div class="card chart-container">
-                <h3>Accelerometer (X, Y, Z)</h3>
-                <canvas id="accelChart"></canvas>
-            </div>
-            <div class="card chart-container">
-                <h3>Gyroscope (X, Y, Z)</h3>
-                <canvas id="gyroChart"></canvas>
-            </div>
-        </section>
+            <!-- MIDDLE ROW: High Frequency Motion Data -->
+            <section class="grid-row middle-row">
+                <div class="card chart-container">
+                    <h3>Accelerometer (X, Y, Z)</h3>
+                    <canvas id="accelChart"></canvas>
+                </div>
+                <div class="card chart-container">
+                    <h3>Gyroscope (X, Y, Z)</h3>
+                    <canvas id="gyroChart"></canvas>
+                </div>
+            </section>
 
-        <!-- BOTTOM ROW: Orientation and Audio -->
-        <section class="grid-row bottom-row">
-            <div class="card compass-card">
-                <h3>Magnetometer Compass</h3>
-                <div class="compass-wrapper">
-                    <div id="compass-dial" class="dial">
-                        <div class="needle"></div>
+            <!-- BOTTOM ROW: Orientation and Audio -->
+            <section class="grid-row bottom-row">
+                <div class="card compass-card">
+                    <h3>Magnetometer Compass</h3>
+                    <div class="compass-wrapper">
+                        <div id="compass-dial" class="dial">
+                            <div class="needle"></div>
+                        </div>
+                    </div>
+                    <div class="value small" id="val-mag">Heading: --°</div>
+                </div>
+
+                <div class="card audio-card">
+                    <h3>Ambient Noise Level</h3>
+                    <div class="vu-wrapper">
+                        <div id="vu-meter" class="vu-fill"></div>
+                    </div>
+                    <div class="value small" id="val-noise">Amplitude: 0</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PAGE 2: ROBODOG CONTROL PANEL              -->
+        <!-- ========================================== -->
+        <div id="control-page" class="page-view">
+            <section class="card robodog-control-card">
+                <div class="robodog-control-header">
+                    <div>
+                        <h2>Robodog Control</h2>
+                        <p>Choose a movement sequence or set one servo joint.</p>
+                    </div>
+                    <div id="robotControlStatus" class="robot-control-status offline">CONNECT TO ENABLE</div>
+                </div>
+
+                <div class="robot-control-grid">
+                    <div class="robot-control-group">
+                        <h3>Movement Sequences</h3>
+                        <div class="motion-buttons">
+                            <button type="button" class="motion-btn" data-robot-command="1" data-robot-action="Stand" disabled>STAND</button>
+                            <button type="button" class="motion-btn" data-robot-command="2" data-robot-action="Rest" disabled>REST</button>
+                            <button type="button" class="motion-btn" data-robot-command="3" data-robot-action="Hello / High-five" disabled>HELLO</button>
+                            <button type="button" class="motion-btn" data-robot-command="4" data-robot-action="Walk (4 cycles)" disabled>WALK</button>
+                            <button type="button" class="motion-btn" data-robot-command="5" data-robot-action="Sit" disabled>SIT</button>
+                        </div>
+                    </div>
+
+                    <div class="robot-control-group joint-control-group">
+                        <h3>Manual Joint Adjustment</h3>
+                        <div class="joint-input-row">
+                            <label for="jointSelect">Joint</label>
+                            <select id="jointSelect" disabled>
+                                <option value="FLS">Front Left Shoulder (FLS)</option>
+                                <option value="FLH">Front Left Hip (FLH)</option>
+                                <option value="FLK">Front Left Knee (FLK)</option>
+                                <option value="FRS">Front Right Shoulder (FRS)</option>
+                                <option value="FRH">Front Right Hip (FRH)</option>
+                                <option value="FRK">Front Right Knee (FRK)</option>
+                                <option value="RLS">Rear Left Shoulder (RLS)</option>
+                                <option value="RLH">Rear Left Hip (RLH)</option>
+                                <option value="RLK">Rear Left Knee (RLK)</option>
+                                <option value="RRS">Rear Right Shoulder (RRS)</option>
+                                <option value="RRH">Rear Right Hip (RRH)</option>
+                                <option value="RRK">Rear Right Knee (RRK)</option>
+                            </select>
+                        </div>
+                        <div class="joint-input-row angle-row">
+                            <label for="jointAngle">Angle</label>
+                            <input id="jointAngle" type="range" min="0" max="180" value="90" step="1" disabled>
+                            <input id="jointAngleNumber" type="number" min="0" max="180" value="90" step="1" disabled>
+                            <output id="jointAngleValue" for="jointAngle">90&deg;</output>
+                        </div>
+                        <button type="button" id="sendJointBtn" class="joint-send-btn" disabled>SET JOINT ANGLE</button>
                     </div>
                 </div>
-                <div class="value small" id="val-mag">Heading: --°</div>
-            </div>
+            </section>
+        </div>
 
-            <div class="card audio-card">
-                <h3>Ambient Noise Level</h3>
-                <div class="vu-wrapper">
-                    <div id="vu-meter" class="vu-fill"></div>
-                </div>
-                <div class="value small" id="val-noise">Amplitude: 0</div>
-            </div>
-        </section>
-
-        <!-- ROBODOG CONTROL: uses the BLE UART RX characteristic -->
-        <section class="card robodog-control-card" aria-labelledby="robodog-control-title">
-            <div class="robodog-control-header">
-                <div>
-                    <h2 id="robodog-control-title">Robodog Control</h2>
-                    <p>Choose a movement sequence or set one servo joint. Commands are sent over the connected BLE link.</p>
-                </div>
-                <div id="robotControlStatus" class="robot-control-status offline" role="status">CONNECT TO ENABLE</div>
-            </div>
-
-            <div class="robot-control-grid">
-                <div class="robot-control-group">
-                    <h3>Movement Sequences</h3>
-                    <div class="motion-buttons">
-                        <button type="button" class="motion-btn" data-robot-command="1" data-robot-action="Stand" disabled>STAND</button>
-                        <button type="button" class="motion-btn" data-robot-command="2" data-robot-action="Rest" disabled>REST</button>
-                        <button type="button" class="motion-btn" data-robot-command="3" data-robot-action="Hello / High-five" disabled>HELLO</button>
-                        <button type="button" class="motion-btn" data-robot-command="4" data-robot-action="Walk (4 cycles)" disabled>WALK</button>
-                        <button type="button" class="motion-btn" data-robot-command="5" data-robot-action="Sit" disabled>SIT</button>
-                    </div>
-                    <p class="control-note">Send one movement at a time and wait for its completion before issuing the next command.</p>
-                </div>
-
-                <div class="robot-control-group joint-control-group">
-                    <h3>Manual Joint Adjustment</h3>
-                    <div class="joint-input-row">
-                        <label for="jointSelect">Joint</label>
-                        <select id="jointSelect" disabled>
-                            <option value="FLS">Front Left Shoulder (FLS)</option>
-                            <option value="FLH">Front Left Hip (FLH)</option>
-                            <option value="FLK">Front Left Knee (FLK)</option>
-                            <option value="FRS">Front Right Shoulder (FRS)</option>
-                            <option value="FRH">Front Right Hip (FRH)</option>
-                            <option value="FRK">Front Right Knee (FRK)</option>
-                            <option value="RLS">Rear Left Shoulder (RLS)</option>
-                            <option value="RLH">Rear Left Hip (RLH)</option>
-                            <option value="RLK">Rear Left Knee (RLK)</option>
-                            <option value="RRS">Rear Right Shoulder (RRS)</option>
-                            <option value="RRH">Rear Right Hip (RRH)</option>
-                            <option value="RRK">Rear Right Knee (RRK)</option>
-                        </select>
-                    </div>
-                    <div class="joint-input-row angle-row">
-                        <label for="jointAngle">Angle</label>
-                        <input id="jointAngle" type="range" min="0" max="180" value="90" step="1" disabled>
-                        <input id="jointAngleNumber" type="number" min="0" max="180" value="90" step="1" aria-label="Joint angle in degrees" disabled>
-                        <output id="jointAngleValue" for="jointAngle">90&deg;</output>
-                    </div>
-                    <button type="button" id="sendJointBtn" class="joint-send-btn" disabled>SET JOINT ANGLE</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- DEBUG LOG FOOTER -->
+        <!-- DEBUG LOG FOOTER (Always Visible) -->
         <section class="card debug-card">
-            <h3>System & Connection Console</h3>
+            <h3>System Console</h3>
             <div id="debugLog" class="debug-console">Ready to connect... Click "CONNECT BLE" above.</div>
         </section>
+
     </main>
+
+    <!-- App Navigation Bar -->
+    <nav class="app-nav">
+        <button class="nav-tab active" data-target="telemetry-page">
+            <span class="nav-icon">📊</span> Telemetry
+        </button>
+        <button class="nav-tab" data-target="control-page">
+            <span class="nav-icon">🎮</span> Control
+        </button>
+    </nav>
 
     <script src="script.js"></script>
 </body>

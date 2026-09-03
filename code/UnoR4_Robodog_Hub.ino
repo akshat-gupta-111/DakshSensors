@@ -362,6 +362,7 @@ void standUp() {
   delay(1000);
 
   isStanding = true;
+  isSitting = false;
 
   logPrintln("--- STUNT COMPLETE: DOG IS STANDING ---");
   logPrintln("You can now enter '<KEYWORD> <ANGLE>' to tweak positions.");
@@ -392,6 +393,7 @@ void rest() {
   delay(1000);
 
   isStanding = false;
+  isSitting = false;
 
   logPrintln("--- STUNT COMPLETE: DOG IS RESTING ---");
   logPrintln("You can now enter '<KEYWORD> <ANGLE>' to tweak positions.");

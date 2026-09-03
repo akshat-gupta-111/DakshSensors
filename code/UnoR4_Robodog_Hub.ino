@@ -22,7 +22,7 @@
 #define DHTTYPE DHT11
 #define MQ_ANALOG_PIN A0
 #define MQ_DIGITAL_PIN 2
-#define FLAME_ANALOG_PIN A1
+#define FLAME_DIGITAL_PIN 5
 
 DHT dht(DHTPIN, DHTTYPE);
 Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver();
@@ -98,6 +98,7 @@ void setup() {
   Serial1.begin(115200); // UART from Nano (RX Pin 0)
 
   pinMode(MQ_DIGITAL_PIN, INPUT);
+  pinMode(FLAME_DIGITAL_PIN, INPUT_PULLUP);
   dht.begin();
 
   while (!Serial && millis() < 3000);
@@ -199,7 +200,7 @@ void loop() {
     previousMillis = currentMillis;
 
     currentGas = analogRead(MQ_ANALOG_PIN);
-    currentFlame = analogRead(FLAME_ANALOG_PIN);
+    currentFlame = digitalRead(FLAME_DIGITAL_PIN);
 
     float rawTemp = dht.readTemperature();
     float rawHumid = dht.readHumidity();
@@ -556,6 +557,6 @@ void printDataInHumanReadable(SensorPayload p) {
   Serial.print("DHT Temp: "); Serial.print(currentTemp); Serial.print(" °C | ");
   Serial.print("DHT Humid: "); Serial.print(currentHumid); Serial.println(" %");
   Serial.print("Gas Level: "); Serial.print(p.mqAnalog);
-  Serial.print(" | Flame Intensity: "); Serial.print(p.flameAnalog);
-  Serial.println(p.flameAnalog > 700 ? " [FLAME DETECTED!]" : " [Safe]");
+  Serial.print("Flame Sensor DO: "); Serial.print(p.flameAnalog);
+  Serial.println(p.flameAnalog == LOW ? " [FLAME DETECTED!]" : " [Safe]");
 }

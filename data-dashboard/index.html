@@ -120,7 +120,7 @@
                             <button type="button" class="motion-btn" data-robot-command="1" data-robot-action="Stand" disabled>STAND</button>
                             <button type="button" class="motion-btn" data-robot-command="2" data-robot-action="Rest" disabled>REST</button>
                             <button type="button" class="motion-btn" data-robot-command="3" data-robot-action="Hello / High-five" disabled>HELLO</button>
-                            <button type="button" class="motion-btn" data-robot-command="4" data-robot-action="Walk (4 cycles)" disabled>WALK</button>
+                            <button type="button" class="motion-btn" data-robot-command="4" data-robot-action="Dance" disabled>DANCE</button>
                             <button type="button" class="motion-btn" data-robot-command="5" data-robot-action="Sit" disabled>SIT</button>
                         </div>
                     </div>
@@ -152,6 +152,19 @@
                         </div>
                         <button type="button" id="sendJointBtn" class="joint-send-btn" disabled>SET JOINT ANGLE</button>
                     </div>
+                </div>
+
+                <!-- Voice Command Panel -->
+                <div class="voice-command-panel">
+                    <div class="voice-panel-header">
+                        <div>
+                            <h3>🎙️ Voice Commands</h3>
+                            <p class="voice-hint">Say: "Hey Daksh Stand Up", "Sit Down", "Do a Dance", "Say Hello", "Take Rest"</p>
+                        </div>
+                        <button type="button" id="voiceMicBtn" class="mic-btn" title="Hold to speak">🎤 SPEAK</button>
+                    </div>
+                    <div id="voiceTranscript" class="voice-transcript">Voice commands ready. Press SPEAK and talk to Daksh...</div>
+                    <div id="voiceStatus" class="voice-status-bar"></div>
                 </div>
             </section>
         </div>

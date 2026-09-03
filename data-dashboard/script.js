@@ -317,3 +317,205 @@ function updateArray(arrX, arrY, arrZ, newValues, chartRef) {
     arrZ.push(newValues[2]); arrZ.shift();
     chartRef.update();
 }
+
+// =============================================================================
+// VOICE COMMAND ENGINE — Web Speech API + Keyword Mapping
+// =============================================================================
+
+/**
+ * Keyword map: each command has an array of trigger words.
+ * If ANY of those words appear in the recognised utterance, the command fires.
+ * Words are checked case-insensitively against the transcript.
+ */
+const VOICE_COMMAND_MAP = [
+    {
+        command: '1',
+        action:  'Stand',
+        // Matches: "stand", "up", "rise", "upright", "straight", "get up"
+        keywords: ['stand', 'up', 'rise', 'upright', 'straight', 'get up'],
+    },
+    {
+        command: '5',
+        action:  'Sit',
+        // Matches: "sit", "down", "crouch", "squat", "lower"
+        keywords: ['sit', 'down', 'crouch', 'squat', 'lower'],
+    },
+    {
+        command: '3',
+        action:  'Hello / High-five',
+        // Matches: "hello", "hi", "wave", "greet", "high five", "high-five", "howdy", "hey"
+        keywords: ['hello', ' hi ', 'wave', 'greet', 'high five', 'high-five', 'howdy', 'hey'],
+    },
+    {
+        command: '2',
+        action:  'Rest',
+        // Matches: "rest", "relax", "stop", "sleep", "idle", "chill", "pause", "halt"
+        keywords: ['rest', 'relax', 'stop', 'sleep', 'idle', 'chill', 'pause', 'halt'],
+    },
+    {
+        command: '4',
+        action:  'Dance',
+        // Matches: "dance", "walk", "groove", "move", "boogie", "shuffle", "jive", "spin"
+        keywords: ['dance', 'walk', 'groove', 'move', 'boogie', 'shuffle', 'jive', 'spin'],
+    },
+];
+
+/**
+ * Match a spoken transcript string against the command map.
+ * Returns the first matching command entry, or null if none matched.
+ */
+function matchVoiceCommand(transcript) {
+    const lower = ` ${transcript.toLowerCase()} `; // pad with spaces for word-boundary matching
+    for (const entry of VOICE_COMMAND_MAP) {
+        for (const kw of entry.keywords) {
+            // Check as a substring in padded string
+            if (lower.includes(kw.toLowerCase())) {
+                return entry;
+            }
+        }
+    }
+    return null;
+}
+
+// --- Speech Recognition Initialisation ---
+(function initVoiceEngine() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const micBtn       = document.getElementById('voiceMicBtn');
+    const transcriptEl = document.getElementById('voiceTranscript');
+    const statusEl     = document.getElementById('voiceStatus');
+
+    if (!SpeechRecognition) {
+        if (micBtn) {
+            micBtn.disabled = true;
+            micBtn.title = 'Speech Recognition not supported in this browser. Use Chrome or Edge.';
+        }
+        if (statusEl) {
+            statusEl.textContent = '⚠ Speech Recognition unavailable — use Chrome or Edge';
+            statusEl.className   = 'voice-status-bar unmatched';
+        }
+        logDebug('Voice: Web Speech API not supported in this browser.');
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang         = 'en-US';
+    recognition.interimResults = true;  // Show live partial results
+    recognition.continuous   = false;   // Auto-stop after each phrase
+    recognition.maxAlternatives = 3;
+
+    let isListening = false;
+
+    function startListening() {
+        if (isListening) return;
+        try {
+            recognition.start();
+        } catch (e) {
+            // Already started — ignore duplicate starts
+        }
+    }
+
+    function stopListening() {
+        if (!isListening) return;
+        try {
+            recognition.stop();
+        } catch (e) { /* ignore */ }
+    }
+
+    function setListeningUI(active) {
+        isListening = active;
+        if (!micBtn) return;
+        if (active) {
+            micBtn.classList.add('listening');
+            micBtn.textContent = '🔴 LISTENING…';
+        } else {
+            micBtn.classList.remove('listening');
+            micBtn.textContent = '🎤 SPEAK';
+        }
+    }
+
+    // Mic button — tap to toggle
+    micBtn.addEventListener('click', () => {
+        if (isListening) {
+            stopListening();
+        } else {
+            // Clear old status
+            statusEl.textContent = '';
+            statusEl.className   = 'voice-status-bar listening';
+            transcriptEl.classList.add('active');
+            transcriptEl.textContent = '🎙 Listening…';
+            startListening();
+        }
+    });
+
+    // ---- Recognition Events ----
+
+    recognition.addEventListener('start', () => {
+        setListeningUI(true);
+        logDebug('Voice: Microphone opened — listening for commands…');
+    });
+
+    recognition.addEventListener('result', (event) => {
+        let interimText = '';
+        let finalText   = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result     = event.results[i];
+            const transcript = result[0].transcript;
+            if (result.isFinal) {
+                finalText += transcript;
+            } else {
+                interimText += transcript;
+            }
+        }
+
+        // Show live transcript
+        const displayText = finalText || interimText;
+        transcriptEl.textContent = `"${displayText}"`;
+
+        if (finalText) {
+            logDebug(`Voice: Heard → "${finalText.trim()}"`);
+            const match = matchVoiceCommand(finalText);
+
+            if (match) {
+                statusEl.textContent = `✅ MATCHED: ${match.action.toUpperCase()}`;
+                statusEl.className   = 'voice-status-bar matched';
+                logDebug(`Voice: Command matched → ${match.action} (${match.command})`);
+
+                // Fire the robot command — same path as button click
+                sendRobotCommand(match.command, match.action);
+
+                // Visual flash on the corresponding button
+                const btn = document.querySelector(`[data-robot-command="${match.command}"]`);
+                if (btn && !btn.disabled) {
+                    btn.classList.add('voice-activated');
+                    setTimeout(() => btn.classList.remove('voice-activated'), 800);
+                }
+            } else {
+                statusEl.textContent = `❌ NO MATCH — try: stand, sit, hello, rest, dance`;
+                statusEl.className   = 'voice-status-bar unmatched';
+                logDebug(`Voice: No command matched for "${finalText.trim()}"`);
+            }
+        }
+    });
+
+    recognition.addEventListener('end', () => {
+        setListeningUI(false);
+        transcriptEl.classList.remove('active');
+        logDebug('Voice: Microphone closed.');
+    });
+
+    recognition.addEventListener('error', (event) => {
+        setListeningUI(false);
+        transcriptEl.classList.remove('active');
+        const errMsg = event.error === 'not-allowed'
+            ? '⛔ Microphone access denied. Please allow mic permission.'
+            : `⚠ Speech error: ${event.error}`;
+        statusEl.textContent = errMsg;
+        statusEl.className   = 'voice-status-bar unmatched';
+        transcriptEl.textContent = 'Voice commands ready. Press SPEAK and talk to Daksh…';
+        logDebug(`Voice error: ${event.error}`);
+    });
+
+    logDebug('Voice: Speech recognition engine initialised. Press SPEAK to activate.');
+})();

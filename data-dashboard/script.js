@@ -281,7 +281,7 @@ function updateDashboard(data) {
         const flameCard = document.getElementById('flame-card');
         document.getElementById('val-flame-raw').innerText = `Intensity: ${flameLvl}`;
         
-        if (flameLvl > 700) {
+        if (flameLvl ==0) {
             document.getElementById('val-flame').innerText = "🔥 WARNING";
             document.getElementById('val-flame').style.color = "#ef4444";
             flameCard.style.borderColor = "#ef4444";

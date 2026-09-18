@@ -106,7 +106,9 @@ button:disabled { background: #334155; cursor: not-allowed; }
     40%  { box-shadow: 0 0 20px #0ea5e9; transform: scale(1.1); }
     100% { box-shadow: 0 0 0px #0ea5e9; transform: scale(1); }
 }
-.motion-btn[data-robot-command="4"] { background: #7c3aed; }
+.motion-btn[data-robot-command="4"] { background: #0f766e; }
+.motion-btn[data-robot-command="6"] { background: #7c3aed; }
+.motion-btn[data-robot-command="7"] { background: #b91c1c; }
 .motion-btn[data-robot-command="2"] { background: #475569; }
 
 .joint-input-row { display: grid; grid-template-columns: 50px 1fr; align-items: center; gap: 10px; margin-bottom: 15px; }

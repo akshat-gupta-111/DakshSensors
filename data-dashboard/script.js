@@ -347,6 +347,12 @@ const VOICE_COMMAND_MAP = [
         keywords: ['hello', ' hi ', 'wave', 'greet', 'high five', 'high-five', 'howdy', 'hey'],
     },
     {
+        command: '7',
+        action:  'Stop Walking',
+        // Matches explicit walking stop requests before the more general rest command.
+        keywords: ['stop walking', 'stop walk', 'halt walking', 'halt walk'],
+    },
+    {
         command: '2',
         action:  'Rest',
         // Matches: "rest", "relax", "stop", "sleep", "idle", "chill", "pause", "halt"
@@ -354,9 +360,15 @@ const VOICE_COMMAND_MAP = [
     },
     {
         command: '4',
+        action:  'Continuous Walk',
+        // Matches walking requests without the explicit stop phrase.
+        keywords: ['walk', 'walking', 'groove', 'move', 'shuffle'],
+    },
+    {
+        command: '6',
         action:  'Dance',
-        // Matches: "dance", "walk", "groove", "move", "boogie", "shuffle", "jive", "spin"
-        keywords: ['dance', 'walk', 'groove', 'move', 'boogie', 'shuffle', 'jive', 'spin'],
+        // Matches: "dance", "boogie", "jive", "spin"
+        keywords: ['dance', 'boogie', 'jive', 'spin'],
     },
 ];
 
@@ -492,7 +504,7 @@ function matchVoiceCommand(transcript) {
                     setTimeout(() => btn.classList.remove('voice-activated'), 800);
                 }
             } else {
-                statusEl.textContent = `❌ NO MATCH — try: stand, sit, hello, rest, dance`;
+                statusEl.textContent = `❌ NO MATCH — try: stand, sit, hello, rest, walk, stop, dance`;
                 statusEl.className   = 'voice-status-bar unmatched';
                 logDebug(`Voice: No command matched for "${finalText.trim()}"`);
             }

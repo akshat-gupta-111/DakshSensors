@@ -1,7 +1,12 @@
 // Static import — required so Vite/Capacitor correctly injects the native Android BLE bridge.
-import { BleClient } from '@capacitor-community/bluetooth-le';
+import { BleClient, numberToUUID } from '@capacitor-community/bluetooth-le';
 
-// --- Navigation Tab Logic ---
+// Helper: encode a string to DataView (required by BleClient.write)
+function stringToDataView(str) {
+    const bytes = new TextEncoder().encode(str);
+    return new DataView(bytes.buffer);
+}
+
 document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
         // Remove active class from all tabs and pages
@@ -79,10 +84,9 @@ async function sendRobotCommand(command, actionLabel) {
     try {
         setRobotControlStatus(`SENDING ${actionLabel.toUpperCase()}`, 'sending');
         const commandBytes = new TextEncoder().encode(command);
-        await BleClient.write(connectedDeviceId, SERVICE_UUID, RX_CHARACTERISTIC_UUID, {
-            value: commandBytes,
-            buffer: commandBytes.buffer
-        });
+        await BleClient.writeWithoutResponse(
+            connectedDeviceId, SERVICE_UUID, RX_CHARACTERISTIC_UUID,
+            stringToDataView(command));
         logDebug(`Robodog command sent: ${actionLabel} (${command})`);
         setRobotControlStatus(`SENT: ${actionLabel.toUpperCase()}`, 'ready');
     } catch (error) {
@@ -241,7 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 SERVICE_UUID,
                 TX_CHARACTERISTIC_UUID,
                 (value) => {
-                    const bytes = new Uint8Array(value.buffer ?? value);
+                    // value is a DataView on Android
+                    const bytes = value instanceof DataView
+                        ? new Uint8Array(value.buffer)
+                        : new Uint8Array(value.buffer ?? value);
                     const chunk = new TextDecoder('utf-8').decode(bytes);
                     bleBuffer += chunk;
                     let idx;
@@ -280,22 +287,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Request permissions (Android 12+). Some plugin versions expose this,
-        // others handle it automatically — so we try and ignore if missing.
-        try {
-            const perms = await BleClient.requestPermissions();
-            logDebug(`BLE permissions: ${JSON.stringify(perms)}`);
-        } catch (e) {
-            logDebug(`Permissions handled by OS (${e.message || e})`);
-        }
+        // Request BLE enable first (Android will prompt if off)
+        try { await BleClient.requestEnable(); } catch (_) {}
 
         openScanModal();
         logDebug('Scanning for ALL nearby BLE devices…');
 
         try {
             scanActive = true;
-            // No service filter → shows every advertising BLE device in range
-            await BleClient.startLEScan({}, (result) => {
+            // requestLEScan with no filters → discovers every advertising BLE device
+            await BleClient.requestLEScan({}, (result) => {
                 addDeviceToList({
                     deviceId: result.device.deviceId,
                     name: result.device.name || result.localName || '',
@@ -311,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cancel button stops scan and closes modal
     cancelBtn.addEventListener('click', async () => {
         if (scanActive) {
-            try { await BleClient.stopLEScan(); } catch(_) {}
+            try { await BleClient.stopLEScan(); } catch (_) {}
             scanActive = false;
         }
         closeScanModal();

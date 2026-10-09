@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DakshSensors</string>
+    <string name="title_activity_main">DakshSensors</string>
+    <string name="package_name">com.robodash.dakshsensors</string>
+    <string name="custom_url_scheme">com.robodash.dakshsensors</string>
+</resources>

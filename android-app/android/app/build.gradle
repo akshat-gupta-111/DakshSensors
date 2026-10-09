@@ -42,6 +42,16 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+// Fix: Kotlin stdlib-jdk7 and stdlib-jdk8 were merged into stdlib since 1.8.
+// Force all variants to align on the same version to avoid duplicate class errors.
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'org.jetbrains.kotlin') {
+            details.useVersion '1.8.22'
+        }
+    }
+}
+
 apply from: 'capacitor.build.gradle'
 
 try {

@@ -1,3 +1,6 @@
+// Static import — required so Vite/Capacitor correctly injects the native Android BLE bridge.
+import { BleClient } from '@capacitor-community/bluetooth-le';
+
 // --- Navigation Tab Logic ---
 document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -23,22 +26,20 @@ const SERVICE_UUID          = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const TX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // Arduino → App (notify)
 const RX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // App → Arduino (write)
 
-// Capacitor BLE plugin — imported at runtime to stay compatible with web preview
-let BleClient = null;
 let connectedDeviceId = null;
 let bleBuffer = "";
+let bleInitialized = false;
 
-async function getBleClient() {
-    if (BleClient) return BleClient;
+async function initBle() {
+    if (bleInitialized) return true;
     try {
-        const mod = await import('@capacitor-community/bluetooth-le');
-        BleClient = mod.BleClient;
         await BleClient.initialize({ androidNeverForLocation: false });
+        bleInitialized = true;
+        return true;
     } catch (e) {
-        logDebug("BLE plugin unavailable (running in browser): " + (e.message || e));
-        BleClient = null;
+        logDebug('BLE init error: ' + (e.message || e));
+        return false;
     }
-    return BleClient;
 }
 
 const MAX_POINTS = 30;
@@ -273,17 +274,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── CONNECT BUTTON ────────────────────────────────────────────────────────
     connectBtn.addEventListener('click', async () => {
-        const ble = await getBleClient();
-        if (!ble) {
-            logDebug('ERROR: BLE plugin not available. Run the native Android app.');
+        const ok = await initBle();
+        if (!ok) {
+            logDebug('ERROR: BLE init failed. Make sure you are running the native Android app.');
             return;
         }
 
+        // Request permissions (Android 12+). Some plugin versions expose this,
+        // others handle it automatically — so we try and ignore if missing.
         try {
-            const permResult = await ble.requestPermissions();
-            logDebug(`BLE permissions: ${JSON.stringify(permResult)}`);
+            const perms = await BleClient.requestPermissions();
+            logDebug(`BLE permissions: ${JSON.stringify(perms)}`);
         } catch (e) {
-            logDebug(`Permission request error: ${e.message || e}`);
+            logDebug(`Permissions handled by OS (${e.message || e})`);
         }
 
         openScanModal();
@@ -291,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             scanActive = true;
-            // No filters → discovers every advertising BLE device in range
+            // No service filter → shows every advertising BLE device in range
             await BleClient.startLEScan({}, (result) => {
                 addDeviceToList({
                     deviceId: result.device.deviceId,

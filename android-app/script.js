@@ -166,42 +166,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setRobotControlsEnabled(false);
 
-    // ── CONNECT ──────────────────────────────────────────────────────────────
-    connectBtn.addEventListener('click', async () => {
-        logDebug("Initiating BLE scan via Capacitor plugin...");
-        const ble = await getBleClient();
-        if (!ble) {
-            logDebug("ERROR: BLE plugin not available. Make sure you are running the native Android app.");
-            return;
+    // ── BLE Scan Modal helpers ────────────────────────────────────────────────
+    const scanModal    = document.getElementById('bleScanModal');
+    const deviceList   = document.getElementById('bleDeviceList');
+    const noDevicesEl  = document.getElementById('bleNoDevices');
+    const scanSpinner  = document.getElementById('bleScanSpinner');
+    const scanTitle    = document.getElementById('bleScanTitle');
+    const cancelBtn    = document.getElementById('bleCancelBtn');
+
+    const discoveredDevices = new Map(); // deviceId → device info
+    let scanActive = false;
+
+    function openScanModal() {
+        discoveredDevices.clear();
+        deviceList.innerHTML = '';
+        deviceList.appendChild(noDevicesEl);
+        noDevicesEl.textContent = 'No devices found yet…';
+        scanSpinner.classList.remove('stopped');
+        scanTitle.textContent = 'Scanning for devices…';
+        scanModal.style.display = 'flex';
+    }
+
+    function closeScanModal() {
+        scanModal.style.display = 'none';
+    }
+
+    function addDeviceToList(device) {
+        if (discoveredDevices.has(device.deviceId)) return; // already shown
+        discoveredDevices.set(device.deviceId, device);
+
+        // Hide the "no devices" placeholder
+        if (noDevicesEl.parentNode === deviceList) {
+            deviceList.removeChild(noDevicesEl);
         }
 
+        const item = document.createElement('div');
+        item.className = 'ble-device-item';
+        item.innerHTML = `
+            <div class="ble-device-info">
+                <div class="ble-device-name">${device.name || '(Unknown Device)'}</div>
+                <div class="ble-device-id">${device.deviceId}</div>
+            </div>
+            <div class="ble-connect-chip">CONNECT</div>
+        `;
+        item.addEventListener('click', () => connectToDevice(device.deviceId, device.name));
+        deviceList.appendChild(item);
+    }
+
+    async function connectToDevice(deviceId, deviceName) {
+        // Stop scanning first
+        if (scanActive) {
+            try { await BleClient.stopLEScan(); } catch(_) {}
+            scanActive = false;
+        }
+        closeScanModal();
+
+        logDebug(`Connecting to ${deviceName || deviceId}…`);
         try {
-            // Request permissions explicitly before scanning (Android 12+)
-            const permResult = await ble.requestPermissions();
-            logDebug(`BLE permissions: ${JSON.stringify(permResult)}`);
-
-            // No 'services' filter → all nearby BLE devices appear in the picker.
-            // optionalServices allows us to access the NUS service after connecting.
-            const device = await ble.requestDevice({
-                optionalServices: [SERVICE_UUID],
-            });
-
-            connectedDeviceId = device.deviceId;
-            logDebug(`Found device: ${device.name || device.deviceId}`);
-
-            await ble.connect(connectedDeviceId, () => {
-                // onDisconnect callback
-                logDebug("Device disconnected!");
-                statusBadge.textContent = "DISCONNECTED";
-                statusBadge.className   = "badge disconnected";
+            await BleClient.connect(deviceId, () => {
+                logDebug('Device disconnected!');
+                statusBadge.textContent = 'DISCONNECTED';
+                statusBadge.className   = 'badge disconnected';
                 connectBtn.disabled     = false;
                 disconnectBtn.disabled  = true;
                 connectedDeviceId       = null;
                 setRobotControlsEnabled(false);
             });
 
-            // Subscribe to TX characteristic (Arduino → App notifications)
-            await ble.startNotifications(
+            connectedDeviceId = deviceId;
+
+            await BleClient.startNotifications(
                 connectedDeviceId,
                 SERVICE_UUID,
                 TX_CHARACTERISTIC_UUID,
@@ -223,21 +257,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             );
 
-            statusBadge.textContent = "CONNECTED";
-            statusBadge.className   = "badge connected";
+            statusBadge.textContent = 'CONNECTED';
+            statusBadge.className   = 'badge connected';
             connectBtn.disabled     = true;
             disconnectBtn.disabled  = false;
             setRobotControlsEnabled(true);
-            logDebug(">> CONNECTED TO ROBODOG <<");
+            logDebug(`>> CONNECTED TO ${(deviceName || deviceId).toUpperCase()} <<`);
 
         } catch (error) {
             connectedDeviceId = null;
             setRobotControlsEnabled(false);
-            logDebug(`BLE Error: ${error.message || error}`);
+            logDebug(`BLE Connect Error: ${error.message || error}`);
+        }
+    }
+
+    // ── CONNECT BUTTON ────────────────────────────────────────────────────────
+    connectBtn.addEventListener('click', async () => {
+        const ble = await getBleClient();
+        if (!ble) {
+            logDebug('ERROR: BLE plugin not available. Run the native Android app.');
+            return;
+        }
+
+        try {
+            const permResult = await ble.requestPermissions();
+            logDebug(`BLE permissions: ${JSON.stringify(permResult)}`);
+        } catch (e) {
+            logDebug(`Permission request error: ${e.message || e}`);
+        }
+
+        openScanModal();
+        logDebug('Scanning for ALL nearby BLE devices…');
+
+        try {
+            scanActive = true;
+            // No filters → discovers every advertising BLE device in range
+            await BleClient.startLEScan({}, (result) => {
+                addDeviceToList({
+                    deviceId: result.device.deviceId,
+                    name: result.device.name || result.localName || '',
+                });
+            });
+        } catch (error) {
+            scanActive = false;
+            closeScanModal();
+            logDebug(`BLE Scan Error: ${error.message || error}`);
         }
     });
 
-    // ── DISCONNECT ───────────────────────────────────────────────────────────
+    // Cancel button stops scan and closes modal
+    cancelBtn.addEventListener('click', async () => {
+        if (scanActive) {
+            try { await BleClient.stopLEScan(); } catch(_) {}
+            scanActive = false;
+        }
+        closeScanModal();
+        logDebug('BLE scan cancelled.');
+    });
+
+    // ── DISCONNECT ────────────────────────────────────────────────────────────
     disconnectBtn.addEventListener('click', async () => {
         if (connectedDeviceId && BleClient) {
             try {
@@ -248,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 
 
 function handleIncomingData(event) {

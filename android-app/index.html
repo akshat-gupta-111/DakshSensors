@@ -23,6 +23,23 @@
         </div>
     </header>
 
+    <!-- BLE Device Scan Modal -->
+    <div id="bleScanModal" class="ble-modal-overlay" style="display:none;">
+        <div class="ble-modal">
+            <div class="ble-modal-header">
+                <div class="ble-scan-title">
+                    <div id="bleScanSpinner" class="ble-spinner"></div>
+                    <span id="bleScanTitle">Scanning for devices…</span>
+                </div>
+                <button id="bleCancelBtn" class="ble-cancel-btn">✕ Cancel</button>
+            </div>
+            <p class="ble-hint">Make sure your Arduino is powered on and Bluetooth is enabled.</p>
+            <div id="bleDeviceList" class="ble-device-list">
+                <div class="ble-no-devices" id="bleNoDevices">No devices found yet…</div>
+            </div>
+        </div>
+    </div>
+
     <main id="dashboard">
         
         <!-- ========================================== -->

@@ -33,7 +33,7 @@ async function getBleClient() {
     try {
         const mod = await import('@capacitor-community/bluetooth-le');
         BleClient = mod.BleClient;
-        await BleClient.initialize();
+        await BleClient.initialize({ androidNeverForLocation: false });
     } catch (e) {
         logDebug("BLE plugin unavailable (running in browser): " + (e.message || e));
         BleClient = null;
@@ -176,8 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            // Request permissions explicitly before scanning (Android 12+)
+            const permResult = await ble.requestPermissions();
+            logDebug(`BLE permissions: ${JSON.stringify(permResult)}`);
+
+            // No 'services' filter → all nearby BLE devices appear in the picker.
+            // optionalServices allows us to access the NUS service after connecting.
             const device = await ble.requestDevice({
-                services: [SERVICE_UUID],
+                optionalServices: [SERVICE_UUID],
             });
 
             connectedDeviceId = device.deviceId;

@@ -19,13 +19,27 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 });
 
 // --- BLE Service & Characteristic UUIDs (Nordic UART Service) ---
-const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-const TX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-const RX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+const SERVICE_UUID          = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const TX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // Arduino → App (notify)
+const RX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // App → Arduino (write)
 
-let bluetoothDevice = null;
-let robotControlCharacteristic = null;
-let bleBuffer = ""; 
+// Capacitor BLE plugin — imported at runtime to stay compatible with web preview
+let BleClient = null;
+let connectedDeviceId = null;
+let bleBuffer = "";
+
+async function getBleClient() {
+    if (BleClient) return BleClient;
+    try {
+        const mod = await import('@capacitor-community/bluetooth-le');
+        BleClient = mod.BleClient;
+        await BleClient.initialize();
+    } catch (e) {
+        logDebug("BLE plugin unavailable (running in browser): " + (e.message || e));
+        BleClient = null;
+    }
+    return BleClient;
+}
 
 const MAX_POINTS = 30;
 let timeLabels = Array(MAX_POINTS).fill('');
@@ -56,7 +70,7 @@ function setRobotControlsEnabled(enabled) {
 }
 
 async function sendRobotCommand(command, actionLabel) {
-    if (!robotControlCharacteristic || !bluetoothDevice?.gatt?.connected) {
+    if (!connectedDeviceId || !BleClient) {
         logDebug('Robot command not sent: BLE is disconnected.');
         setRobotControlStatus('NOT CONNECTED', 'error');
         return;
@@ -64,13 +78,10 @@ async function sendRobotCommand(command, actionLabel) {
     try {
         setRobotControlStatus(`SENDING ${actionLabel.toUpperCase()}`, 'sending');
         const commandBytes = new TextEncoder().encode(command);
-        if (typeof robotControlCharacteristic.writeValueWithoutResponse === 'function') {
-            await robotControlCharacteristic.writeValueWithoutResponse(commandBytes);
-        } else if (typeof robotControlCharacteristic.writeValueWithResponse === 'function') {
-            await robotControlCharacteristic.writeValueWithResponse(commandBytes);
-        } else {
-            await robotControlCharacteristic.writeValue(commandBytes);
-        }
+        await BleClient.write(connectedDeviceId, SERVICE_UUID, RX_CHARACTERISTIC_UUID, {
+            value: commandBytes,
+            buffer: commandBytes.buffer
+        });
         logDebug(`Robodog command sent: ${actionLabel} (${command})`);
         setRobotControlStatus(`SENT: ${actionLabel.toUpperCase()}`, 'ready');
     } catch (error) {
@@ -108,8 +119,8 @@ function initCharts() {
                 labels: timeLabels,
                 datasets: [
                     { label: 'Pitch', data: gx, borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, tension: 0.2 },
-                    { label: 'Roll', data: gy, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, tension: 0.2 },
-                    { label: 'Yaw', data: gz, borderColor: '#0ea5e9', borderWidth: 2, pointRadius: 0, tension: 0.2 }
+                    { label: 'Roll',  data: gy, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, tension: 0.2 },
+                    { label: 'Yaw',   data: gz, borderColor: '#0ea5e9', borderWidth: 2, pointRadius: 0, tension: 0.2 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, animation: false }
@@ -120,22 +131,22 @@ function initCharts() {
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
 
-    const connectBtn = document.getElementById('connectBtn');
+    const connectBtn    = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
-    const statusBadge = document.getElementById('statusBadge');
-    
+    const statusBadge   = document.getElementById('statusBadge');
+
     // Joint logic
-    const jointAngle = document.getElementById('jointAngle');
+    const jointAngle       = document.getElementById('jointAngle');
     const jointAngleNumber = document.getElementById('jointAngleNumber');
-    const jointAngleValue = document.getElementById('jointAngleValue');
-    const jointSelect = document.getElementById('jointSelect');
-    const sendJointBtn = document.getElementById('sendJointBtn');
+    const jointAngleValue  = document.getElementById('jointAngleValue');
+    const jointSelect      = document.getElementById('jointSelect');
+    const sendJointBtn     = document.getElementById('sendJointBtn');
 
     const syncJointAngle = value => {
         const angle = Math.min(180, Math.max(0, Number.parseInt(value, 10) || 0));
         jointAngle.value = angle;
         jointAngleNumber.value = angle;
-        if(jointAngleValue) jointAngleValue.textContent = `${angle} deg`;
+        if (jointAngleValue) jointAngleValue.textContent = `${angle} deg`;
     };
 
     jointAngle.addEventListener('input', event => syncJointAngle(event.target.value));
@@ -155,63 +166,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setRobotControlsEnabled(false);
 
-    if (!navigator.bluetooth) {
-        logDebug("ERROR: Web Bluetooth API is not supported. Use Chrome or Edge.");
-        return;
-    }
-
+    // ── CONNECT ──────────────────────────────────────────────────────────────
     connectBtn.addEventListener('click', async () => {
-        logDebug("Initiating BLE device scan...");
-        try {
-            try {
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'RoboDog_Hub' }, { services: [SERVICE_UUID] }],
-                    optionalServices: [SERVICE_UUID]
-                });
-            } catch (filterErr) {
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true, optionalServices: [SERVICE_UUID]
-                });
-            }
+        logDebug("Initiating BLE scan via Capacitor plugin...");
+        const ble = await getBleClient();
+        if (!ble) {
+            logDebug("ERROR: BLE plugin not available. Make sure you are running the native Android app.");
+            return;
+        }
 
-            bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+        try {
+            const device = await ble.requestDevice({
+                services: [SERVICE_UUID],
+            });
+
+            connectedDeviceId = device.deviceId;
+            logDebug(`Found device: ${device.name || device.deviceId}`);
+
+            await ble.connect(connectedDeviceId, () => {
+                // onDisconnect callback
                 logDebug("Device disconnected!");
                 statusBadge.textContent = "DISCONNECTED";
-                statusBadge.className = "badge disconnected";
-                connectBtn.disabled = false;
-                disconnectBtn.disabled = true;
-                robotControlCharacteristic = null;
+                statusBadge.className   = "badge disconnected";
+                connectBtn.disabled     = false;
+                disconnectBtn.disabled  = true;
+                connectedDeviceId       = null;
                 setRobotControlsEnabled(false);
             });
 
-            const server = await bluetoothDevice.gatt.connect();
-            const service = await server.getPrimaryService(SERVICE_UUID);
-            const telemetryCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
-            robotControlCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
-
-            await telemetryCharacteristic.startNotifications();
-            telemetryCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
+            // Subscribe to TX characteristic (Arduino → App notifications)
+            await ble.startNotifications(
+                connectedDeviceId,
+                SERVICE_UUID,
+                TX_CHARACTERISTIC_UUID,
+                (value) => {
+                    const bytes = new Uint8Array(value.buffer ?? value);
+                    const chunk = new TextDecoder('utf-8').decode(bytes);
+                    bleBuffer += chunk;
+                    let idx;
+                    while ((idx = bleBuffer.indexOf('\n')) !== -1) {
+                        const line = bleBuffer.substring(0, idx).trim();
+                        bleBuffer  = bleBuffer.substring(idx + 1);
+                        if (!line) continue;
+                        if (line.startsWith('<') && line.endsWith('>')) {
+                            parseAndDisplayPacket(line.slice(1, -1));
+                        } else {
+                            logDebug(`Hub: ${line}`);
+                        }
+                    }
+                }
+            );
 
             statusBadge.textContent = "CONNECTED";
-            statusBadge.className = "badge connected";
-            connectBtn.disabled = true;
-            disconnectBtn.disabled = false;
+            statusBadge.className   = "badge connected";
+            connectBtn.disabled     = true;
+            disconnectBtn.disabled  = false;
             setRobotControlsEnabled(true);
             logDebug(">> CONNECTED TO ROBODOG <<");
 
         } catch (error) {
-            robotControlCharacteristic = null;
+            connectedDeviceId = null;
             setRobotControlsEnabled(false);
             logDebug(`BLE Error: ${error.message || error}`);
         }
     });
 
-    disconnectBtn.addEventListener('click', () => {
-        if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-            bluetoothDevice.gatt.disconnect();
+    // ── DISCONNECT ───────────────────────────────────────────────────────────
+    disconnectBtn.addEventListener('click', async () => {
+        if (connectedDeviceId && BleClient) {
+            try {
+                await BleClient.disconnect(connectedDeviceId);
+            } catch (e) {
+                logDebug(`Disconnect error: ${e.message || e}`);
+            }
         }
     });
 });
+
 
 function handleIncomingData(event) {
     const decoder = new TextDecoder('utf-8');

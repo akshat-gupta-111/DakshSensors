@@ -297,10 +297,14 @@ document.addEventListener('DOMContentLoaded', () => {
             scanActive = true;
             // requestLEScan with no filters → discovers every advertising BLE device
             await BleClient.requestLEScan({}, (result) => {
-                addDeviceToList({
-                    deviceId: result.device.deviceId,
-                    name: result.device.name || result.localName || '',
-                });
+                const deviceName = result.device.name || result.localName;
+                // Filter out nameless devices (like beacons and TVs) to reduce clutter
+                if (deviceName && deviceName.trim().length > 0) {
+                    addDeviceToList({
+                        deviceId: result.device.deviceId,
+                        name: deviceName,
+                    });
+                }
             });
         } catch (error) {
             scanActive = false;

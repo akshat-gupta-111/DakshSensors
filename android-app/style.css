@@ -1,3 +1,5 @@
+* { box-sizing: border-box; }
+
 :root {
     --bg-dark: #0f1115;
     --card-bg: #1a1d24;
@@ -27,6 +29,7 @@ header {
 header h1 { font-size: 1.2rem; color: white; }
 header h1 span { color: var(--accent); display: none; } /* Hidden on mobile to save space */
 .brand { display: flex; align-items: center; gap: 10px; }
+.controls { display: flex; gap: 10px; align-items: center; }
 .badge { padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; letter-spacing: 1px; }
 .badge.disconnected { background: var(--danger); }
 .badge.connected { background: var(--success); }
@@ -212,6 +215,9 @@ button:disabled { background: #334155; cursor: not-allowed; }
 }
 
 @media (max-width: 450px) {
+    header { flex-direction: column; gap: 10px; padding: 15px; }
+    .controls { width: 100%; justify-content: space-between; }
+    .controls button { flex: 1; padding: 10px; }
     .top-row { grid-template-columns: 1fr; }
     header h1 span { display: inline; }
     header h1 { font-size: 1rem; }

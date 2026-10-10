@@ -571,10 +571,21 @@ function matchVoiceCommand(transcript) {
     }
 
     // Mic button — tap to toggle
-    micBtn.addEventListener('click', () => {
+    micBtn.addEventListener('click', async () => {
         if (isListening) {
             stopListening();
         } else {
+            try {
+                // Request mic permission explicitly for Android WebView
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+            } catch (err) {
+                logDebug('Mic permission error: ' + err);
+                statusEl.textContent = '⛔ Microphone access denied. Please allow mic permission in settings.';
+                statusEl.className   = 'voice-status-bar unmatched';
+                return;
+            }
+
             // Clear old status
             statusEl.textContent = '';
             statusEl.className   = 'voice-status-bar listening';

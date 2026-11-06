@@ -340,25 +340,25 @@ void standUp() {
   }
 
   logPrintln("Phase 1: Adjusting Hips...");
-  setServoAngle(10, 145); // RLH
-  setServoAngle(11, 40);  // RRH
-  setServoAngle(4, 85);   // FLH
-  setServoAngle(5, 90);   // FRH
+  setServoAngle(10, 130); // RLH
+  setServoAngle(11, 30);  // RRH
+  setServoAngle(4, 70);   // FLH
+  setServoAngle(5, 80);   // FRH
   delay(1000);
 
   logPrintln("Phase 2: Adjusting Shoulders...");
-  setServoAngle(2, 135);  // FLS
+  setServoAngle(2, 130);  // FLS
   setServoAngle(3, 30);   // FRS
   setServoAngle(12, 135); // RLS
-  setServoAngle(13, 70);  // RRS
+  setServoAngle(13, 50);  // RRS
   delay(1000);
 
   logPrintln("Phase 3: Adjusting Knee...");
-  setServoAngle(14, 110); // RLK
+  setServoAngle(14, 85); // RLK
   setServoAngle(15, 100); // RRK
   delay(500);
-  setServoAngle(1, 105);  // FRK
-  setServoAngle(0, 100);  // FLK
+  setServoAngle(1, 100);  // FRK
+  setServoAngle(0, 70);  // FLK
   delay(1000);
 
   isStanding = true;
@@ -372,14 +372,14 @@ void rest() {
   logPrintln("--- EXECUTING STUNT: RESTING ---");
 
   logPrintln("Phase 1: Adjusting Knee...");
-  setServoAngle(14, 35);  // RLK
-  setServoAngle(15, 175); // RRK
+  setServoAngle(14, 0);  // RLK
+  setServoAngle(15, 165); // RRK
   setServoAngle(1, 180);  // FRK
-  setServoAngle(0, 25);   // FLK
+  setServoAngle(0, 10);   // FLK
   delay(1000);
 
   logPrintln("Phase 2: Adjusting Shoulders...");
-  setServoAngle(2, 180);  // FLS
+  setServoAngle(2, 160);  // FLS
   setServoAngle(3, 0);    // FRS
   setServoAngle(12, 180); // RLS
   setServoAngle(13, 35);  // RRS
@@ -387,9 +387,9 @@ void rest() {
 
   logPrintln("Phase 3: Adjusting Hips...");
   setServoAngle(4, 25);   // FLH
-  setServoAngle(5, 140);  // FRH
-  setServoAngle(10, 85);  // RLH
-  setServoAngle(11, 90);  // RRH
+  setServoAngle(5, 120);  // FRH
+  setServoAngle(10, 95);  // RLH
+  setServoAngle(11, 80);  // RRH
   delay(1000);
 
   isStanding = false;
@@ -407,25 +407,25 @@ void hello() {
   }
 
   logPrintln("Adjusting the Front.");
-  setServoAngle(2, 145);  // FLS
-  setServoAngle(3, 35);   // FRS
-  setServoAngle(1, 110);  // FRK
-  setServoAngle(0, 100);  // FLK
-  setServoAngle(4, 95);   // FLH
-  setServoAngle(5, 95);   // FRH
+  setServoAngle(2, 120);  // FLS
+  setServoAngle(3, 10);   // FRS
+  setServoAngle(1, 105);  // FRK
+  setServoAngle(0, 90);  // FLK
+  setServoAngle(4, 90);   // FLH
+  setServoAngle(5, 80);   // FRH
   delay(1000);
 
   logPrintln("Adjusting the Back.");
-  setServoAngle(12, 150); // RLS
-  setServoAngle(13, 60);  // RRS
+  setServoAngle(12, 140); // RLS
+  setServoAngle(13, 55);  // RRS
   setServoAngle(14, 30);  // RLK
-  setServoAngle(15, 180); // RRK
+  setServoAngle(15, 150); // RRK
   setServoAngle(10, 150); // RLH
   setServoAngle(11, 30);  // RRH
   delay(1000);
 
   logPrintln("Doing High-five action.");
-  setServoAngle(3, 150);  // FRS
+  setServoAngle(3, 120);  // FRS
   delay(2000);
   setServoAngle(3, 20);   // FRS
   delay(1000);
@@ -433,6 +433,9 @@ void hello() {
   logPrintln("Adjusting the Front.");
   setServoAngle(0, 25);   // FLK
   setServoAngle(1, 180);  // FRK
+  setServoAngle(4, 90);  // FLH
+  setServoAngle(5, 140);  // FRH
+
 
   isStanding = false;
   isSitting = false;
@@ -478,22 +481,23 @@ void walk() {
 void sit() {
   if (!isSitting) {
     logPrintln("Adjusting the Front.");
-    setServoAngle(2, 145);  // FLS
+    setServoAngle(2, 120);  // FLS
     setServoAngle(3, 10);   // FRS
-    setServoAngle(1, 110);  // FRK
-    setServoAngle(0, 100);  // FLK
+    setServoAngle(1, 105);  // FRK
+    setServoAngle(0, 90);  // FLK
     setServoAngle(4, 80);   // FLH
-    setServoAngle(5, 95);   // FRH
+    setServoAngle(5, 80);   // FRH
     delay(1000);
 
     logPrintln("Adjusting the Back.");
     setServoAngle(12, 140); // RLS
     setServoAngle(13, 55);  // RRS
     setServoAngle(14, 30);  // RLK
-    setServoAngle(15, 175); // RRK
+    setServoAngle(15, 150); // RRK
     setServoAngle(10, 150); // RLH
     setServoAngle(11, 30);  // RRH
     delay(1000);
+
   } else {
     logPrintln("Already sitting.");
   }

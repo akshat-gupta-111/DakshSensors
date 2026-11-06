@@ -79,9 +79,9 @@ const float STEP_HEIGHT = 40.0;   // Z-height the foot lifts during swing
 const unsigned long CYCLE_TIME = 1000; // 3 Seconds per step (Slow-motion for debugging)
 
 // Servo Center Offsets (Your specific tuned angles)
-int offsetS[4] = {110, 60, 110, 100};  // FLS, FRS, RLS, RRS
-int offsetH[4] = {85, 90, 145, 40};    // FLH, FRH, RLH, RRH
-int offsetK[4] = {150, 50, 165, 50};   // FLK, FRK, RLK, RRK
+int offsetS[4] = {95, 50, 100, 85};  // FLS, FRS, RLS, RRS
+int offsetH[4] = {70, 80, 130, 30};    // FLH, FRH, RLH, RRH
+int offsetK[4] = {140, 45, 145, 40};   // FLK, FRK, RLK, RRK
 
 // Servo Direction Multipliers
 int dirS[4] = {1, -1, 1, -1}; // Flip these if the leg swings the wrong way when walking!
@@ -206,7 +206,9 @@ void handleCommand(String input) {
       logPrintln("Started IK Walking. Send '4' again to stop.");
     } else {
       logPrintln("Stopped walking.");
-      standUp(); 
+      // IK updates do not change this flag, so force the primary angle pose.
+      isStanding = false;
+      standUp();
     }
   }
   else if (input == "5") sit();
@@ -220,6 +222,8 @@ void handleCommand(String input) {
   else if (input == "7") {
     isWalking = false;
     logPrintln("Stopped walking.");
+    // Return to the primary angle-based standing pose after IK walking.
+    isStanding = false;
     standUp();
   }
   else {
@@ -267,7 +271,7 @@ void applyIK(int legIndex, float x, float y, float z) {
   int chS, chH, chK;
   if(legIndex == 0) { chS = 2; chH = 4; chK = 0; }        // FL
   else if(legIndex == 1) { chS = 3; chH = 5; chK = 1; }   // FR
-  else if(legIndex == 2) { chS = 12; chH = 10; chK = 14; }// RL
+  else if(legIndex == 2) { chS = 12; chH = 10; chK = 9; }// RL
   else { chS = 13; chH = 11; chK = 15; }                  // RR
 
   setServoAngle(chS, finalS);
@@ -306,12 +310,12 @@ void updateWalkingGait() {
 }
 
 // ==========================================
-// UTILITY & RESTORED STUNTS 
+// UTILITY & PRIMARY ANGLE-BASED STUNTS
 // ==========================================
 int getChannelFromKeyword(String keyword) {
   if (keyword == "FLS") return 2; if (keyword == "FLH") return 4; if (keyword == "FLK") return 0;
   if (keyword == "FRS") return 3; if (keyword == "FRH") return 5; if (keyword == "FRK") return 1;
-  if (keyword == "RLS") return 12; if (keyword == "RLH") return 10; if (keyword == "RLK") return 14;
+  if (keyword == "RLS") return 12; if (keyword == "RLH") return 10; if (keyword == "RLK") return 9;
   if (keyword == "RRS") return 13; if (keyword == "RRH") return 11; if (keyword == "RRK") return 15;
   return -1;
 }
@@ -323,42 +327,118 @@ void setServoAngle(uint8_t channel, int angle) {
 }
 
 void standUp() {
-  if (isStanding) { logPrintln("Already standing."); return; }
+  if (isStanding) {
+    logPrintln("Already in a standing Position");
+    return;
+  }
+
   logPrintln("--- EXECUTING STUNT: STAND UP ---");
-  if (isSitting) { setServoAngle(1, 180); setServoAngle(0, 25); }
+
+  if (isSitting) {
+    setServoAngle(1, 180);  // FRK
+    setServoAngle(0, 25);   // FLK
+  }
+
   logPrintln("Phase 1: Adjusting Hips...");
-  setServoAngle(10, 145); setServoAngle(11, 40); setServoAngle(4, 85); setServoAngle(5, 90); delay(1000);
+  setServoAngle(10, 130); // RLH
+  setServoAngle(11, 30);  // RRH
+  setServoAngle(4, 70);   // FLH
+  setServoAngle(5, 80);   // FRH
+  delay(1000);
+
   logPrintln("Phase 2: Adjusting Shoulders...");
-  setServoAngle(2, 135); setServoAngle(3, 30); setServoAngle(12, 135); setServoAngle(13, 70); delay(1000);
+  setServoAngle(2, 130);  // FLS
+  setServoAngle(3, 30);   // FRS
+  setServoAngle(12, 135); // RLS
+  setServoAngle(13, 50);  // RRS
+  delay(1000);
+
   logPrintln("Phase 3: Adjusting Knee...");
-  setServoAngle(14, 110); setServoAngle(15, 100); delay(500);
-  setServoAngle(1, 105); setServoAngle(0, 100); delay(1000);
-  isStanding = true; isSitting = false;
+  setServoAngle(9, 85); // RLK
+  setServoAngle(15, 100); // RRK
+  delay(500);
+  setServoAngle(1, 100);  // FRK
+  setServoAngle(0, 70);  // FLK
+  delay(1000);
+
+  isStanding = true;
+  isSitting = false;
+
+  logPrintln("--- STUNT COMPLETE: DOG IS STANDING ---");
+  logPrintln("You can now enter '<KEYWORD> <ANGLE>' to tweak positions.");
 }
 
 void rest() {
   logPrintln("--- EXECUTING STUNT: RESTING ---");
+
   logPrintln("Phase 1: Adjusting Knee...");
-  setServoAngle(14, 35); setServoAngle(15, 175); setServoAngle(1, 180); setServoAngle(0, 25); delay(1000);
+  setServoAngle(9, 0);  // RLK
+  setServoAngle(15, 165); // RRK
+  setServoAngle(1, 180);  // FRK
+  setServoAngle(0, 10);   // FLK
+  delay(1000);
+
   logPrintln("Phase 2: Adjusting Shoulders...");
-  setServoAngle(2, 180); setServoAngle(3, 0); setServoAngle(12, 180); setServoAngle(13, 35); delay(1000);
+  setServoAngle(2, 160);  // FLS
+  setServoAngle(3, 0);    // FRS
+  setServoAngle(12, 180); // RLS
+  setServoAngle(13, 35);  // RRS
+  delay(1000);
+
   logPrintln("Phase 3: Adjusting Hips...");
-  setServoAngle(4, 25); setServoAngle(5, 140); setServoAngle(10, 85); setServoAngle(11, 90); delay(1000);
-  isStanding = false; isSitting = false;
+  setServoAngle(4, 25);   // FLH
+  setServoAngle(5, 120);  // FRH
+  setServoAngle(10, 95);  // RLH
+  setServoAngle(11, 80);  // RRH
+  delay(1000);
+
+  isStanding = false;
+  isSitting = false;
+
+  logPrintln("--- STUNT COMPLETE: DOG IS RESTING ---");
+  logPrintln("You can now enter '<KEYWORD> <ANGLE>' to tweak positions.");
 }
 
 void hello() {
   logPrintln("--- EXECUTING STUNT: HELLO ---");
-  if (!isSitting) { standUp(); delay(1000); }
+  if (!isSitting) {
+    standUp();
+    delay(1000);
+  }
+
   logPrintln("Adjusting the Front.");
-  setServoAngle(2, 145); setServoAngle(3, 35); setServoAngle(1, 110); setServoAngle(0, 100); setServoAngle(4, 95); setServoAngle(5, 95); delay(1000);
+  setServoAngle(2, 120);  // FLS
+  setServoAngle(3, 10);   // FRS
+  setServoAngle(1, 105);  // FRK
+  setServoAngle(0, 90);  // FLK
+  setServoAngle(4, 90);   // FLH
+  setServoAngle(5, 80);   // FRH
+  delay(1000);
+
   logPrintln("Adjusting the Back.");
-  setServoAngle(12, 150); setServoAngle(13, 60); setServoAngle(14, 30); setServoAngle(15, 180); setServoAngle(10, 150); setServoAngle(11, 30); delay(1000);
+  setServoAngle(12, 140); // RLS
+  setServoAngle(13, 55);  // RRS
+  setServoAngle(9, 30);  // RLK
+  setServoAngle(15, 150); // RRK
+  setServoAngle(10, 150); // RLH
+  setServoAngle(11, 30);  // RRH
+  delay(1000);
+
   logPrintln("Doing High-five action.");
-  setServoAngle(3, 150); delay(2000); setServoAngle(3, 20); delay(1000);
+  setServoAngle(3, 120);  // FRS
+  delay(2000);
+  setServoAngle(3, 20);   // FRS
+  delay(1000);
+
   logPrintln("Adjusting the Front.");
-  setServoAngle(0, 25); setServoAngle(1, 180);
-  isStanding = false; isSitting = false;
+  setServoAngle(0, 25);   // FLK
+  setServoAngle(1, 180);  // FRK
+  setServoAngle(4, 90);  // FLH
+  setServoAngle(5, 140);  // FRH
+
+  isStanding = false;
+  isSitting = false;
+
   sit();
 }
 
@@ -378,7 +458,7 @@ void dance() {
 
   delay(200);
 
-  setServoAngle(14, 80);  // RLK
+  setServoAngle(9, 80);  // RLK
   setServoAngle(1, 135);  // FRK
 
   delay(200);
@@ -389,7 +469,7 @@ void dance() {
   setServoAngle(3, 30);   // FRS
   setServoAngle(12, 140); // RLS
   setServoAngle(1, 105);  // FRK
-  setServoAngle(14, 110); // RLK
+  setServoAngle(9, 110); // RLK
 
   delay(200);
 
@@ -400,11 +480,29 @@ void dance() {
 void sit() {
   if (!isSitting) {
     logPrintln("Adjusting the Front.");
-    setServoAngle(2, 145); setServoAngle(3, 10); setServoAngle(1, 110); setServoAngle(0, 100); setServoAngle(4, 80); setServoAngle(5, 95); delay(1000);
+    setServoAngle(2, 120);  // FLS
+    setServoAngle(3, 10);   // FRS
+    setServoAngle(1, 105);  // FRK
+    setServoAngle(0, 90);  // FLK
+    setServoAngle(4, 80);   // FLH
+    setServoAngle(5, 80);   // FRH
+    delay(1000);
+
     logPrintln("Adjusting the Back.");
-    setServoAngle(12, 140); setServoAngle(13, 55); setServoAngle(14, 30); setServoAngle(15, 175); setServoAngle(10, 150); setServoAngle(11, 30); delay(1000);
-  } else { logPrintln("Already sitting."); }
-  isStanding = false; isSitting = true;
+    setServoAngle(12, 140); // RLS
+    setServoAngle(13, 55);  // RRS
+    setServoAngle(9, 30);  // RLK
+    setServoAngle(15, 150); // RRK
+    setServoAngle(10, 150); // RLH
+    setServoAngle(11, 30);  // RRH
+    delay(1000);
+    
+  } else {
+    logPrintln("Already sitting.");
+  }
+
+  isStanding = false;
+  isSitting = true;
 }
 
 void recvWithStartEndMarkers() {
